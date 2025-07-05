@@ -4,8 +4,8 @@ import {Button} from "@/components/ui/button";
 const Page = () => {
   return (
     <div>
-      <Button>
-        Helop
+      <Button className={'font-black'}>
+        Hello
       </Button>
     </div>
   )
