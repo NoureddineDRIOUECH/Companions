@@ -5,7 +5,7 @@ const Page = () => {
   return (
     <div>
       <Button>
-        Helop
+        Sign in
       </Button>
     </div>
   )
