@@ -12,7 +12,7 @@ enum CallStatus {
     ACTIVE = 'ACTIVE',
     FINISHED = 'FINISHED',
     CONNECTING = 'CONNECTING',
-    ERROR = 'ERROR' // Added error state
+    ERROR = 'ERROR'
 }
 
 const CompanionComponent = ({ companionId, subject, topic, name, userName, userImage, style, voice }: CompanionComponentProps) => {
@@ -20,7 +20,7 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
     const [isSpeaking, setIsSpeaking] = useState(false)
     const [messages, setMessages] = useState<SavedMessage[]>([])
     const [isMuted, setIsMuted] = useState(false)
-    const [error, setError] = useState<string | null>(null); // Track error message
+    const [error, setError] = useState<string | null>(null);
 
     const lottieRef = useRef<LottieRefCurrentProps>(null);
 
@@ -33,12 +33,13 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
     useEffect(() => {
         const onCallStart = () => {
             setCallStatus(CallStatus.ACTIVE);
-            setError(null); // Clear previous errors
+            setError(null);
         }
 
         const onCallEnd = () => {
             setCallStatus(CallStatus.FINISHED);
-            addToSessionHistory(companionId);
+            // Add void to handle promise properly
+            void addToSessionHistory(companionId);
         }
 
         const onMessage = (message: Message) => {
@@ -50,7 +51,6 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
         const onSpeechStart = () => setIsSpeaking(true);
         const onSpeechEnd = () => setIsSpeaking(false);
 
-        // FIX: Handle specific meeting end errors
         const onError = (err: Error) => {
             console.error(err);
             if (err.message.includes('Meeting has ended')) {
@@ -77,16 +77,7 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
             vapi.off('speech-start', onSpeechStart);
             vapi.off('speech-end', onSpeechEnd);
         };
-    }, []);
-
-    // FIX: Proper cleanup on component unmount
-    // useEffect(() => {
-    //     return () => {
-    //         if (vapi.isActive()) {
-    //             vapi.stop();
-    //         }
-    //     };
-    // }, []);
+    }, [companionId]); // Added missing dependency
 
     const toggleMicrophone = () => {
         const muted = vapi.isMuted();
@@ -105,11 +96,12 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
                 serverMessages: []
             };
 
-            // @ts-expect-error
+            // Added description for ts-expect-error
+            // @ts-expect-error: configureAssistant returns valid assistant configuration
             await vapi.start(configureAssistant(voice, style), assistantOverrides);
         } catch (err) {
             setCallStatus(CallStatus.ERROR);
-            setError(`Failed to start call: ${err.message}`);
+            setError(`Failed to start call: ${(err as Error).message}`);
         }
     }
 
@@ -120,6 +112,13 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
 
     return (
         <section className={'flex flex-col h-[70vh]'}>
+            {/* Error message display */}
+            {error && (
+                <div className="text-red-500 p-2 text-center">
+                    {error}
+                </div>
+            )}
+
             <section className="flex gap-8 max-sm:flex-col">
                 <div className="companion-section">
                     <div className="companion-avatar" style={{ backgroundColor: getSubjectColor(subject)}}>
